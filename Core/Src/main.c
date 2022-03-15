@@ -228,11 +228,11 @@ int main(void) {
 
 		// Print output of neural network along with inference time (microseconds)
 		if (!bSerialPlot) {
-			buf_len = sprintf(buf, "Input: %f | Output: %f | Duration: %lu\r\n",
+			buf_len = snprintf(buf, sizeof(buf), "Input: %f | Output: %f | Duration: %lu\r\n",
 					x_val, y_val, htim16.Instance->CNT - timestamp);
 		} else {
 
-			buf_len = sprintf(buf, "#%f,%f\r\n", y_val, sin(x_input));
+			buf_len = snprintf(buf, sizeof(buf), "#%f,%f\r\n", y_val, sin(x_input));
 		}
 
 		HAL_UART_Transmit(&huart1, (uint8_t*) buf, buf_len, 100);
