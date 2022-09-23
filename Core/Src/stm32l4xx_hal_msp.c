@@ -150,6 +150,50 @@ void HAL_ADC_MspDeInit(ADC_HandleTypeDef* hadc)
 }
 
 /**
+* @brief CRYP MSP Initialization
+* This function configures the hardware resources used in this example
+* @param hcryp: CRYP handle pointer
+* @retval None
+*/
+void HAL_CRYP_MspInit(CRYP_HandleTypeDef* hcryp)
+{
+  if(hcryp->Instance==AES)
+  {
+  /* USER CODE BEGIN AES_MspInit 0 */
+
+  /* USER CODE END AES_MspInit 0 */
+    /* Peripheral clock enable */
+    __HAL_RCC_AES_CLK_ENABLE();
+  /* USER CODE BEGIN AES_MspInit 1 */
+
+  /* USER CODE END AES_MspInit 1 */
+  }
+
+}
+
+/**
+* @brief CRYP MSP De-Initialization
+* This function freeze the hardware resources used in this example
+* @param hcryp: CRYP handle pointer
+* @retval None
+*/
+void HAL_CRYP_MspDeInit(CRYP_HandleTypeDef* hcryp)
+{
+  if(hcryp->Instance==AES)
+  {
+  /* USER CODE BEGIN AES_MspDeInit 0 */
+
+  /* USER CODE END AES_MspDeInit 0 */
+    /* Peripheral clock disable */
+    __HAL_RCC_AES_CLK_DISABLE();
+  /* USER CODE BEGIN AES_MspDeInit 1 */
+
+  /* USER CODE END AES_MspDeInit 1 */
+  }
+
+}
+
+/**
 * @brief CRC MSP Initialization
 * This function configures the hardware resources used in this example
 * @param hcrc: CRC handle pointer
@@ -209,6 +253,7 @@ void HAL_DFSDM_ChannelMspInit(DFSDM_Channel_HandleTypeDef* hdfsdm_channel)
   /* USER CODE BEGIN DFSDM1_MspInit 0 */
 
   /* USER CODE END DFSDM1_MspInit 0 */
+
   /** Initializes the peripherals clock
   */
     PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_DFSDM1;
@@ -272,6 +317,44 @@ void HAL_DFSDM_ChannelMspDeInit(DFSDM_Channel_HandleTypeDef* hdfsdm_channel)
 }
 
 /**
+* @brief HASH MSP Initialization
+* This function configures the hardware resources used in this example
+* @param hhash: HASH handle pointer
+* @retval None
+*/
+void HAL_HASH_MspInit(HASH_HandleTypeDef* hhash)
+{
+  /* USER CODE BEGIN HASH_MspInit 0 */
+
+  /* USER CODE END HASH_MspInit 0 */
+    /* Peripheral clock enable */
+    __HAL_RCC_HASH_CLK_ENABLE();
+  /* USER CODE BEGIN HASH_MspInit 1 */
+
+  /* USER CODE END HASH_MspInit 1 */
+
+}
+
+/**
+* @brief HASH MSP De-Initialization
+* This function freeze the hardware resources used in this example
+* @param hhash: HASH handle pointer
+* @retval None
+*/
+void HAL_HASH_MspDeInit(HASH_HandleTypeDef* hhash)
+{
+  /* USER CODE BEGIN HASH_MspDeInit 0 */
+
+  /* USER CODE END HASH_MspDeInit 0 */
+    /* Peripheral clock disable */
+    __HAL_RCC_HASH_CLK_DISABLE();
+  /* USER CODE BEGIN HASH_MspDeInit 1 */
+
+  /* USER CODE END HASH_MspDeInit 1 */
+
+}
+
+/**
 * @brief I2C MSP Initialization
 * This function configures the hardware resources used in this example
 * @param hi2c: I2C handle pointer
@@ -286,6 +369,7 @@ void HAL_I2C_MspInit(I2C_HandleTypeDef* hi2c)
   /* USER CODE BEGIN I2C1_MspInit 0 */
 
   /* USER CODE END I2C1_MspInit 0 */
+
   /** Initializes the peripherals clock
   */
     PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_I2C1;
@@ -415,6 +499,7 @@ void HAL_OSPI_MspInit(OSPI_HandleTypeDef* hospi)
   /* USER CODE BEGIN OCTOSPI1_MspInit 0 */
 
   /* USER CODE END OCTOSPI1_MspInit 0 */
+
   /** Initializes the peripherals clock
   */
     PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_OSPI;
@@ -483,6 +568,50 @@ void HAL_OSPI_MspDeInit(OSPI_HandleTypeDef* hospi)
   /* USER CODE BEGIN OCTOSPI1_MspDeInit 1 */
 
   /* USER CODE END OCTOSPI1_MspDeInit 1 */
+  }
+
+}
+
+/**
+* @brief RNG MSP Initialization
+* This function configures the hardware resources used in this example
+* @param hrng: RNG handle pointer
+* @retval None
+*/
+void HAL_RNG_MspInit(RNG_HandleTypeDef* hrng)
+{
+  if(hrng->Instance==RNG)
+  {
+  /* USER CODE BEGIN RNG_MspInit 0 */
+
+  /* USER CODE END RNG_MspInit 0 */
+    /* Peripheral clock enable */
+    __HAL_RCC_RNG_CLK_ENABLE();
+  /* USER CODE BEGIN RNG_MspInit 1 */
+
+  /* USER CODE END RNG_MspInit 1 */
+  }
+
+}
+
+/**
+* @brief RNG MSP De-Initialization
+* This function freeze the hardware resources used in this example
+* @param hrng: RNG handle pointer
+* @retval None
+*/
+void HAL_RNG_MspDeInit(RNG_HandleTypeDef* hrng)
+{
+  if(hrng->Instance==RNG)
+  {
+  /* USER CODE BEGIN RNG_MspDeInit 0 */
+
+  /* USER CODE END RNG_MspDeInit 0 */
+    /* Peripheral clock disable */
+    __HAL_RCC_RNG_CLK_DISABLE();
+  /* USER CODE BEGIN RNG_MspDeInit 1 */
+
+  /* USER CODE END RNG_MspDeInit 1 */
   }
 
 }
@@ -657,6 +786,7 @@ void HAL_UART_MspInit(UART_HandleTypeDef* huart)
   /* USER CODE BEGIN UART4_MspInit 0 */
 
   /* USER CODE END UART4_MspInit 0 */
+
   /** Initializes the peripherals clock
   */
     PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_UART4;
@@ -880,4 +1010,3 @@ void HAL_UART_MspDeInit(UART_HandleTypeDef* huart)
 /* USER CODE BEGIN 1 */
 
 /* USER CODE END 1 */
-

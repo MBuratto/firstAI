@@ -6,14 +6,20 @@
 # Add inputs and outputs from these tool invocations to the build variables 
 C_SRCS += \
 ../X-CUBE-AI/App/sine_model.c \
+../X-CUBE-AI/App/sine_model_1648676864308.c \
+../X-CUBE-AI/App/sine_model_1648676864308_data.c \
 ../X-CUBE-AI/App/sine_model_data.c 
 
 OBJS += \
 ./X-CUBE-AI/App/sine_model.o \
+./X-CUBE-AI/App/sine_model_1648676864308.o \
+./X-CUBE-AI/App/sine_model_1648676864308_data.o \
 ./X-CUBE-AI/App/sine_model_data.o 
 
 C_DEPS += \
 ./X-CUBE-AI/App/sine_model.d \
+./X-CUBE-AI/App/sine_model_1648676864308.d \
+./X-CUBE-AI/App/sine_model_1648676864308_data.d \
 ./X-CUBE-AI/App/sine_model_data.d 
 
 
@@ -24,7 +30,7 @@ X-CUBE-AI/App/%.o X-CUBE-AI/App/%.su: ../X-CUBE-AI/App/%.c X-CUBE-AI/App/subdir.
 clean: clean-X-2d-CUBE-2d-AI-2f-App
 
 clean-X-2d-CUBE-2d-AI-2f-App:
-	-$(RM) ./X-CUBE-AI/App/sine_model.d ./X-CUBE-AI/App/sine_model.o ./X-CUBE-AI/App/sine_model.su ./X-CUBE-AI/App/sine_model_data.d ./X-CUBE-AI/App/sine_model_data.o ./X-CUBE-AI/App/sine_model_data.su
+	-$(RM) ./X-CUBE-AI/App/sine_model.d ./X-CUBE-AI/App/sine_model.o ./X-CUBE-AI/App/sine_model.su ./X-CUBE-AI/App/sine_model_1648676864308.d ./X-CUBE-AI/App/sine_model_1648676864308.o ./X-CUBE-AI/App/sine_model_1648676864308.su ./X-CUBE-AI/App/sine_model_1648676864308_data.d ./X-CUBE-AI/App/sine_model_1648676864308_data.o ./X-CUBE-AI/App/sine_model_1648676864308_data.su ./X-CUBE-AI/App/sine_model_data.d ./X-CUBE-AI/App/sine_model_data.o ./X-CUBE-AI/App/sine_model_data.su
 
 .PHONY: clean-X-2d-CUBE-2d-AI-2f-App
 

@@ -28,6 +28,7 @@
 #include "sine_model.h"
 #include "sine_model_data.h"
 #include "math.h"
+#include <string.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -47,14 +48,23 @@
 /* Private variables ---------------------------------------------------------*/
 ADC_HandleTypeDef hadc1;
 
+CRYP_HandleTypeDef hcryp;
+__ALIGN_BEGIN static const uint8_t pKeyAES[16] __ALIGN_END = { 0x00, 0x00, 0x00,
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+		0x00 };
+
 CRC_HandleTypeDef hcrc;
 
 DFSDM_Channel_HandleTypeDef hdfsdm1_channel2;
+
+HASH_HandleTypeDef hhash;
 
 I2C_HandleTypeDef hi2c1;
 I2C_HandleTypeDef hi2c2;
 
 OSPI_HandleTypeDef hospi1;
+
+RNG_HandleTypeDef hrng;
 
 SPI_HandleTypeDef hspi1;
 SPI_HandleTypeDef hspi3;
@@ -88,6 +98,9 @@ static void MX_USART3_UART_Init(void);
 static void MX_USB_OTG_FS_USB_Init(void);
 static void MX_CRC_Init(void);
 static void MX_TIM16_Init(void);
+static void MX_AES_Init(void);
+static void MX_HASH_Init(void);
+static void MX_RNG_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -103,6 +116,7 @@ static void MX_TIM16_Init(void);
  */
 int main(void) {
 	/* USER CODE BEGIN 1 */
+	char pOutputData[128];
 	char buf[128];
 	int buf_len = 0;
 	ai_error ai_err;
@@ -174,17 +188,21 @@ int main(void) {
 	MX_USB_OTG_FS_USB_Init();
 	MX_CRC_Init();
 	MX_TIM16_Init();
+	MX_AES_Init();
+	MX_HASH_Init();
+	MX_RNG_Init();
 	/* USER CODE BEGIN 2 */
 	HAL_TIM_Base_Start(&htim16);
 
 	// Greetings!
-	buf_len = snprintf(buf, sizeof(buf),"\r\n\r\nSTM32 X-Cube-AI test\r\n");
+	buf_len = snprintf(buf, sizeof(buf), "\r\n\r\nSTM32 X-Cube-AI test\r\n");
 	HAL_UART_Transmit(&huart1, (uint8_t*) buf, buf_len, 100);
 
 	// Create instance of neural network
 	ai_err = ai_sine_model_create(&sine_model, AI_SINE_MODEL_DATA_CONFIG);
 	if (ai_err.type != AI_ERROR_NONE) {
-		buf_len = snprintf(buf, sizeof(buf),"Error: could not create NN instance\r\n");
+		buf_len = snprintf(buf, sizeof(buf),
+				"Error: could not create NN instance\r\n");
 		HAL_UART_Transmit(&huart1, (uint8_t*) buf, buf_len, 100);
 		while (1)
 			;
@@ -192,7 +210,8 @@ int main(void) {
 
 	// Initialize neural network
 	if (!ai_sine_model_init(sine_model, &ai_params)) {
-		buf_len = snprintf(buf, sizeof(buf),"Error: could not initialize NN\r\n");
+		buf_len = snprintf(buf, sizeof(buf),
+				"Error: could not initialize NN\r\n");
 		HAL_UART_Transmit(&huart1, (uint8_t*) buf, buf_len, 100);
 		while (1)
 			;
@@ -207,7 +226,7 @@ int main(void) {
 		for (uint32_t i = 0; i < AI_SINE_MODEL_IN_1_SIZE; i++) {
 			((ai_float*) in_data)[i] = (ai_float) x_input;
 			x_input += 0.1;
-			if (x_input > 2.0*M_PI) {
+			if (x_input > 2.0 * M_PI) {
 				x_input = 0;
 			}
 		}
@@ -218,7 +237,8 @@ int main(void) {
 		// Perform inference
 		nbatch = ai_sine_model_run(sine_model, &ai_input[0], &ai_output[0]);
 		if (nbatch != 1) {
-			buf_len = snprintf(buf, sizeof(buf),"Error: could not run inference\r\n");
+			buf_len = snprintf(buf, sizeof(buf),
+					"Error: could not run inference\r\n");
 			HAL_UART_Transmit(&huart1, (uint8_t*) buf, buf_len, 100);
 		}
 
@@ -228,17 +248,24 @@ int main(void) {
 
 		// Print output of neural network along with inference time (microseconds)
 		if (!bSerialPlot) {
-			buf_len = snprintf(buf, sizeof(buf), "Input: %f | Output: %f | Duration: %lu\r\n",
-					x_val, y_val, htim16.Instance->CNT - timestamp);
+			buf_len = snprintf(buf, sizeof(buf),
+					"Input: %f | Output: %f | Duration: %lu\r\n", x_val, y_val,
+					htim16.Instance->CNT - timestamp);
 		} else {
 
-			buf_len = snprintf(buf, sizeof(buf), "#%f,%f\r\n", y_val, sin(x_input));
+			buf_len = snprintf(buf, sizeof(buf), "#%f,%f\r\n", y_val,
+					sin(x_input));
 		}
 
 		HAL_UART_Transmit(&huart1, (uint8_t*) buf, buf_len, 100);
 
+		HAL_StatusTypeDef ret = HAL_CRYPEx_AES(&hcryp, (uint8_t*) buf,
+				sizeof(buf), (uint8_t*) pOutputData, 100);
+		if (ret == HAL_OK) {
+			HAL_UART_Transmit(&huart1, (uint8_t *)pOutputData, strlen(pOutputData), 100);
+		}
 		// Wait before doing it again
-//		HAL_Delay(500);
+		HAL_Delay(500);
 		/* USER CODE END WHILE */
 
 		/* USER CODE BEGIN 3 */
@@ -260,10 +287,12 @@ void SystemClock_Config(void) {
 			!= HAL_OK) {
 		Error_Handler();
 	}
+
 	/** Configure LSE Drive Capability
 	 */
 	HAL_PWR_EnableBkUpAccess();
 	__HAL_RCC_LSEDRIVE_CONFIG(RCC_LSEDRIVE_LOW);
+
 	/** Initializes the RCC Oscillators according to the specified parameters
 	 * in the RCC_OscInitTypeDef structure.
 	 */
@@ -283,6 +312,7 @@ void SystemClock_Config(void) {
 	if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK) {
 		Error_Handler();
 	}
+
 	/** Initializes the CPU, AHB and APB buses clocks
 	 */
 	RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_SYSCLK
@@ -295,6 +325,7 @@ void SystemClock_Config(void) {
 	if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_5) != HAL_OK) {
 		Error_Handler();
 	}
+
 	/** Enable MSI Auto calibration
 	 */
 	HAL_RCCEx_EnableMSIPLLMode();
@@ -309,9 +340,11 @@ void PeriphCommonClock_Config(void) {
 
 	/** Initializes the peripherals clock
 	 */
-	PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_USB | RCC_PERIPHCLK_ADC;
+	PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_USB | RCC_PERIPHCLK_RNG
+			| RCC_PERIPHCLK_ADC;
 	PeriphClkInit.AdcClockSelection = RCC_ADCCLKSOURCE_PLLSAI1;
 	PeriphClkInit.UsbClockSelection = RCC_USBCLKSOURCE_PLLSAI1;
+	PeriphClkInit.RngClockSelection = RCC_RNGCLKSOURCE_PLLSAI1;
 	PeriphClkInit.PLLSAI1.PLLSAI1Source = RCC_PLLSOURCE_MSI;
 	PeriphClkInit.PLLSAI1.PLLSAI1M = 1;
 	PeriphClkInit.PLLSAI1.PLLSAI1N = 24;
@@ -341,6 +374,7 @@ static void MX_ADC1_Init(void) {
 	/* USER CODE BEGIN ADC1_Init 1 */
 
 	/* USER CODE END ADC1_Init 1 */
+
 	/** Common config
 	 */
 	hadc1.Instance = ADC1;
@@ -361,6 +395,7 @@ static void MX_ADC1_Init(void) {
 	if (HAL_ADC_Init(&hadc1) != HAL_OK) {
 		Error_Handler();
 	}
+
 	/** Configure Regular Channel
 	 */
 	sConfig.Channel = ADC_CHANNEL_1;
@@ -375,6 +410,36 @@ static void MX_ADC1_Init(void) {
 	/* USER CODE BEGIN ADC1_Init 2 */
 
 	/* USER CODE END ADC1_Init 2 */
+
+}
+
+/**
+ * @brief AES Initialization Function
+ * @param None
+ * @retval None
+ */
+static void MX_AES_Init(void) {
+
+	/* USER CODE BEGIN AES_Init 0 */
+
+	/* USER CODE END AES_Init 0 */
+
+	/* USER CODE BEGIN AES_Init 1 */
+
+	/* USER CODE END AES_Init 1 */
+	hcryp.Instance = AES;
+	hcryp.Init.DataType = CRYP_DATATYPE_32B;
+	hcryp.Init.KeySize = CRYP_KEYSIZE_128B;
+	hcryp.Init.OperatingMode = CRYP_ALGOMODE_ENCRYPT;
+	hcryp.Init.ChainingMode = CRYP_CHAINMODE_AES_ECB;
+	hcryp.Init.KeyWriteFlag = CRYP_KEY_WRITE_ENABLE;
+	hcryp.Init.pKey = (uint8_t*) pKeyAES;
+	if (HAL_CRYP_Init(&hcryp) != HAL_OK) {
+		Error_Handler();
+	}
+	/* USER CODE BEGIN AES_Init 2 */
+
+	/* USER CODE END AES_Init 2 */
 
 }
 
@@ -446,6 +511,30 @@ static void MX_DFSDM1_Init(void) {
 }
 
 /**
+ * @brief HASH Initialization Function
+ * @param None
+ * @retval None
+ */
+static void MX_HASH_Init(void) {
+
+	/* USER CODE BEGIN HASH_Init 0 */
+
+	/* USER CODE END HASH_Init 0 */
+
+	/* USER CODE BEGIN HASH_Init 1 */
+
+	/* USER CODE END HASH_Init 1 */
+	hhash.Init.DataType = HASH_DATATYPE_32B;
+	if (HAL_HASH_Init(&hhash) != HAL_OK) {
+		Error_Handler();
+	}
+	/* USER CODE BEGIN HASH_Init 2 */
+
+	/* USER CODE END HASH_Init 2 */
+
+}
+
+/**
  * @brief I2C1 Initialization Function
  * @param None
  * @retval None
@@ -471,12 +560,14 @@ static void MX_I2C1_Init(void) {
 	if (HAL_I2C_Init(&hi2c1) != HAL_OK) {
 		Error_Handler();
 	}
+
 	/** Configure Analogue filter
 	 */
 	if (HAL_I2CEx_ConfigAnalogFilter(&hi2c1, I2C_ANALOGFILTER_ENABLE)
 			!= HAL_OK) {
 		Error_Handler();
 	}
+
 	/** Configure Digital filter
 	 */
 	if (HAL_I2CEx_ConfigDigitalFilter(&hi2c1, 0) != HAL_OK) {
@@ -514,12 +605,14 @@ static void MX_I2C2_Init(void) {
 	if (HAL_I2C_Init(&hi2c2) != HAL_OK) {
 		Error_Handler();
 	}
+
 	/** Configure Analogue filter
 	 */
 	if (HAL_I2CEx_ConfigAnalogFilter(&hi2c2, I2C_ANALOGFILTER_ENABLE)
 			!= HAL_OK) {
 		Error_Handler();
 	}
+
 	/** Configure Digital filter
 	 */
 	if (HAL_I2CEx_ConfigDigitalFilter(&hi2c2, 0) != HAL_OK) {
@@ -574,6 +667,31 @@ static void MX_OCTOSPI1_Init(void) {
 	/* USER CODE BEGIN OCTOSPI1_Init 2 */
 
 	/* USER CODE END OCTOSPI1_Init 2 */
+
+}
+
+/**
+ * @brief RNG Initialization Function
+ * @param None
+ * @retval None
+ */
+static void MX_RNG_Init(void) {
+
+	/* USER CODE BEGIN RNG_Init 0 */
+
+	/* USER CODE END RNG_Init 0 */
+
+	/* USER CODE BEGIN RNG_Init 1 */
+
+	/* USER CODE END RNG_Init 1 */
+	hrng.Instance = RNG;
+	hrng.Init.ClockErrorDetection = RNG_CED_ENABLE;
+	if (HAL_RNG_Init(&hrng) != HAL_OK) {
+		Error_Handler();
+	}
+	/* USER CODE BEGIN RNG_Init 2 */
+
+	/* USER CODE END RNG_Init 2 */
 
 }
 
@@ -1062,4 +1180,3 @@ void assert_failed(uint8_t *file, uint32_t line)
   /* USER CODE END 6 */
 }
 #endif /* USE_FULL_ASSERT */
-
